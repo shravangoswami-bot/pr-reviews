@@ -152,7 +152,7 @@
           "type": "finding",
           "title": "Pullback algebra matches the old partials",
           "status": "verified",
-          "text": "With α defined by α + u·tanh(α + b) = y, the new pullback returns 1/(1+u·sech²) for y, −tanh(α+b)·that for u, and (that − 1) for b. These are the same formulas as before, now evaluated at the current values. Checked by reading the code, not by running it.",
+          "text": "With α defined by α + u*tanh(α + b) = y, the new pullback returns 1/(1+u*sech²) for y, −tanh(α+b)*that for u, and (that − 1) for b. These are the same formulas as before, now evaluated at the current values. Checked by reading the code, not by running it.",
           "refs": [
             "ext-head-find-alpha"
           ]
