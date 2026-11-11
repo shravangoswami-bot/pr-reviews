@@ -20,6 +20,6 @@ Inbox comments start a workflow immediately, subject to GitHub queuing.
 
 [Sample report](https://shravangoswami-bot.github.io/pr-reviews/examples/dynamicppl-1529/) · [Reviary](https://github.com/shravanngoswamii/reviary) · [Options](https://github.com/shravanngoswamii/reviary/blob/main/docs/bot.md#review-options)
 
-Settings are in [bot-config.json](bot-config.json) and the `REVIARY_CONFIG` Actions variable.
+Settings live in the `REVIARY_CONFIG` [Actions variable](https://github.com/shravangoswami-bot/pr-reviews/settings/variables/actions).
 Credentials stay in this repository's Actions secrets.
 HTML comments stay local until exported.
