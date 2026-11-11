@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "id": "coin-flip-posterior-review",
+  "title": "Explain the coin flip posterior",
+  "summary": "Adds one README line naming the closed-form posterior Beta(24, 18) for the coin flip example. The line is correct; the adjacent 'near 0.575' sentence is the posterior mode, not the mean.",
+  "review": {
+    "url": "https://github.com/mcmcjs/mcmcjs/pull/172",
+    "title": "Explain the coin flip posterior",
+    "base": "46b149329b3c4013e7a673f1525617fe11f3a357",
+    "head": "8baf68352d0bad0985bb2b7381c7e683623eecf6",
+    "checkedAt": "2026-11-11T08:07:40.186Z"
+  },
+  "sources": [
+    {
+      "id": "readme-head",
+      "label": "examples/coin_flip/README.md at head, lines 13-14",
+      "url": "https://github.com/mcmcjs/mcmcjs/blob/8baf68352d0bad0985bb2b7381c7e683623eecf6/examples/coin_flip/README.md#L13-L14"
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "group": "overview",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "MCMC.js runs probabilistic models and diagnoses the samples. The coin flip example fits a heads probability p with a uniform Beta(1, 1) prior to 23 heads in 40 tosses.\n\nThis PR adds one sentence to the example README: the posterior is Beta(24, 18) with the Beta(1, 1) prior. Only documentation changes. Readers can use the closed form to compare it with the sampler output.",
+          "refs": [
+            "readme-head"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "title": "Review",
+      "group": "review",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "By standard Beta-Bernoulli conjugacy, a Beta(1, 1) prior with 23 heads and 17 tails gives Beta(1+23, 1+17) = Beta(24, 18). The new line matches that. The data file itself was not read, so the 23-in-40 count is taken from the README text."
+        },
+        {
+          "type": "finding",
+          "title": "0.575 is the posterior mode, not the mean",
+          "status": "suggestion",
+          "text": "The unchanged line above the addition says p 'concentrates near 0.575'. For Beta(24, 18) the mode is 23/40 = 0.575 and the mean is 24/42 ≈ 0.571. Now that the exact posterior is named, a reader comparing the sampler's posterior mean with 0.575 would see a small unexplained gap. If the author wants the README to support that comparison, the sentence could say 'the posterior mode is 0.575 and the mean is about 0.571'. This is optional wording, not a defect.",
+          "refs": [
+            "readme-head"
+          ]
+        },
+        {
+          "type": "diff",
+          "title": "Optional wording for the posterior sentence",
+          "text": "Keeps the change within the README's stated purpose of naming the posterior. Arithmetic checked by hand from the Beta formulas.",
+          "path": "examples/coin_flip/README.md",
+          "before": "The data has 23 heads in 40 tosses, so `p` concentrates near 0.575.\nThe posterior is `Beta(24, 18)` with the `Beta(1, 1)` prior.",
+          "after": "The data has 23 heads in 40 tosses. With the `Beta(1, 1)` prior the posterior is\n`Beta(24, 18)`, with mode 0.575 and mean about 0.571.",
+          "scope": "suggestion",
+          "verification": "source-checked"
+        },
+        {
+          "type": "text",
+          "text": "Limits: source review of the diff only. No code or tests were run, and linked work contains only this PR."
+        },
+        {
+          "type": "check",
+          "title": "Review scope",
+          "status": "unverified",
+          "text": "Source review only. PR code, package setup and runtime tests were not executed.\n\nLinked work: public repositories only, depth 2, at most 15 items. Read status describes collection, not semantic review."
+        }
+      ]
+    }
+  ]
+}
