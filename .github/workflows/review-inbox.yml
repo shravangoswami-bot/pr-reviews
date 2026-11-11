@@ -1,0 +1,41 @@
+name: Review requests
+on:
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      comment_url:
+        description: Optional request comment URL
+        type: string
+      retry:
+        description: Resume a failed request
+        type: boolean
+        default: false
+      check_subscription:
+        description: Check Claude subscription and model
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  review:
+    if: >-
+      vars.PR_LENS_ENABLED == 'true' &&
+      (github.event_name != 'issue_comment' ||
+       (!github.event.issue.pull_request &&
+        github.event.issue.number == fromJSON(vars.PR_LENS_CONFIG).inbox.issue &&
+        contains(fromJSON(vars.PR_LENS_CONFIG).requesters.*.id, github.event.comment.user.id)))
+    uses: shravanngoswamii/pr-lens/.github/workflows/review-bot.yml@d8e8c142c1d647bc9add3f14bd6d697951fb2590
+    with:
+      tool_repository: shravanngoswamii/pr-lens
+      tool_ref: d8e8c142c1d647bc9add3f14bd6d697951fb2590
+      config_json: ${{ vars.PR_LENS_CONFIG }}
+      comment_url: ${{ inputs.comment_url || '' }}
+      retry: ${{ inputs.retry || false }}
+      check_subscription: ${{ inputs.check_subscription || false }}
+    secrets:
+      REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
