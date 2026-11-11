@@ -27,5 +27,6 @@
     "repo": "shravangoswami-bot/pr-reviews",
     "issue": 1
   },
-  "model": "sonnet"
+  "model": "sonnet",
+  "effort": "medium"
 }
