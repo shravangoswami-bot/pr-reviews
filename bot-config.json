@@ -18,13 +18,13 @@
   "stateDir": "output/bot-state",
   "publish": {
     "checkout": "output/site",
-    "repo": "shravangoswami-bot/pr-lens-reports",
+    "repo": "shravangoswami-bot/pr-reviews",
     "branch": "gh-pages",
     "prefix": "reviews",
-    "url": "https://shravangoswami-bot.github.io/pr-lens-reports"
+    "url": "https://shravangoswami-bot.github.io/pr-reviews"
   },
   "inbox": {
-    "repo": "shravangoswami-bot/pr-lens-reports",
+    "repo": "shravangoswami-bot/pr-reviews",
     "issue": 1
   },
   "model": "sonnet"
