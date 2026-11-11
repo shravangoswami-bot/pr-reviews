@@ -16,7 +16,7 @@ VM reviews use a fresh Claude Code process on a GitHub-hosted runner.
 Both use the owner's Claude subscription.
 
 The configured cloud preset is Sonnet 5.5 with medium effort.
-Other cloud choices need a matching [task preset or linked regular session](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md).
+Other cloud choices need a matching [task preset](https://github.com/shravanngoswamii/reviary/blob/main/docs/setup.md#session-creation) or [linked regular session](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md#link-a-regular-session).
 VM model and effort are chosen per request.
 
 Inbox comments start immediately, subject to GitHub queuing.
@@ -27,7 +27,7 @@ The bot does not submit formal approvals or run PR code and package tests.
 
 [Sample report](https://shravangoswami-bot.github.io/pr-reviews/examples/dynamicppl-1529/)
 [Reviary](https://github.com/shravanngoswamii/reviary)
-[Setup and renewal](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md)
+[Setup](https://github.com/shravanngoswamii/reviary/blob/main/docs/setup.md) | [Renewal](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md#renew-the-login)
 
 Settings and session IDs live in [Actions variables](https://github.com/shravangoswami-bot/pr-reviews/settings/variables/actions).
 Credentials stay in this repository's Actions secrets.

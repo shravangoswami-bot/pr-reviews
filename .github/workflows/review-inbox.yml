@@ -33,10 +33,10 @@ jobs:
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
         contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@c26c27d352cf7c2c934dbfb5a6ca6b2fcb6d4188
+    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@15d785e82f7929382d552bc0f18fd30e9df0c3c0
     with:
       tool_repository: shravanngoswamii/reviary
-      tool_ref: c26c27d352cf7c2c934dbfb5a6ca6b2fcb6d4188
+      tool_ref: 15d785e82f7929382d552bc0f18fd30e9df0c3c0
       config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
