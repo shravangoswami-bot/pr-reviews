@@ -32,10 +32,10 @@ jobs:
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
         contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@d9b611ab32d22203897f165a5aef6087cd229337
+    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@d7c31c1f1726e5350238b7496402a89b8632c624
     with:
       tool_repository: shravanngoswamii/reviary
-      tool_ref: d9b611ab32d22203897f165a5aef6087cd229337
+      tool_ref: d7c31c1f1726e5350238b7496402a89b8632c624
       config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
@@ -44,3 +44,5 @@ jobs:
     secrets:
       REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CLAUDE_CODE_OAUTH_REFRESH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_REFRESH_TOKEN }}
+      CLAUDE_CLOUD_TRIGGERS: ${{ secrets.CLAUDE_CLOUD_TRIGGERS }}
