@@ -1,8 +1,8 @@
 {
   "version": 1,
   "id": "bijectors-pr-489",
-  "title": "ReverseDiff extension: remove undefined rules and replay-safe find_alpha",
-  "summary": "Bijectors' ReverseDiff extension declared gradient rules for functions it never imported, which breaks loading with ReverseDiff 1.18.8. The PR deletes those rules and rewrites the PlanarLayer find_alpha rule to compute its derivatives inside the pullback.",
+  "title": "ReverseDiff extension changes",
+  "summary": "Removes three undefined gradient rules. Updates the PlanarLayer pullback to use current values when a ReverseDiff tape is replayed.",
   "review": {
     "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
     "title": "Fix the ReverseDiff extension for ReverseDiff 1.18.4 and later",
@@ -161,7 +161,7 @@
           "type": "finding",
           "title": "Each backward pass reruns the root finder",
           "status": "question",
-          "text": "find_alpha_pullback calls find_alpha again, which runs a Roots-based solve (A42 since 0.16.2). The recorded forward value α is discarded. That is the price of replay-safety, but it doubles root-finding cost per PlanarLayer inverse gradient. Is that acceptable, or should the pullback reuse α when inputs have not changed? Not benchmarked.",
+          "text": "The forward pass solves for alpha once. The pullback solves for it again using the current input values. Runtime cost has not been measured.",
           "refs": [
             "ext-head-find-alpha"
           ]
@@ -253,5 +253,17 @@
         }
       ]
     }
-  ]
+  ],
+  "conclusion": {
+    "decision": "hold",
+    "summary": "Hold for a reproducible check of the two tape-replay fixes.",
+    "reasons": [
+      {
+        "text": "Check a compiled tape at a new input and with untracked PlanarLayer parameters. The author reports local checks, while this review has only inspected source.",
+        "refs": [
+          "ext-head-find-alpha"
+        ]
+      }
+    ]
+  }
 }
