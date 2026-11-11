@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "id": "bijectors-pr-489",
+  "title": "ReverseDiff extension: remove undefined rules and replay-safe find_alpha",
+  "summary": "Bijectors' ReverseDiff extension declared gradient rules for functions it never imported, which breaks loading with ReverseDiff 1.18.8. The PR deletes those rules and rewrites the PlanarLayer find_alpha rule to compute its derivatives inside the pullback.",
+  "review": {
+    "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
+    "title": "Fix the ReverseDiff extension for ReverseDiff 1.18.4 and later",
+    "base": "f85bbdd1f4331b66e0ae0567d2d1092e54277c7e",
+    "head": "e0b1d94dcc8e46152969b5e013f09348fb266052",
+    "checkedAt": "2026-11-11T16:04:54.325Z",
+    "agent": {
+      "name": "Claude Code cloud",
+      "requestedModel": "sonnet",
+      "requestedEffort": "medium",
+      "models": [],
+      "session": "https://claude.ai/code/cse_014W6b7fG4b8efYv5hYxgMUt"
+    }
+  },
+  "sources": [
+    {
+      "id": "ext-head-find-alpha",
+      "label": "Head: find_alpha rule",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/e0b1d94dcc8e46152969b5e013f09348fb266052/ext/BijectorsReverseDiffExt.jl#L196-L209"
+    },
+    {
+      "id": "ext-base-find-alpha",
+      "label": "Base: find_alpha rule",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f85bbdd1f4331b66e0ae0567d2d1092e54277c7e/ext/BijectorsReverseDiffExt.jl#L198-L210"
+    },
+    {
+      "id": "ext-base-pd-upper",
+      "label": "Base: pd_from_upper rule",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f85bbdd1f4331b66e0ae0567d2d1092e54277c7e/ext/BijectorsReverseDiffExt.jl#L184-L184"
+    },
+    {
+      "id": "ext-base-lkj",
+      "label": "Base: _link_chol_lkj_from_* rules",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f85bbdd1f4331b66e0ae0567d2d1092e54277c7e/ext/BijectorsReverseDiffExt.jl#L220-L222"
+    },
+    {
+      "id": "ext-head-imports",
+      "label": "Head: extension imports",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/e0b1d94dcc8e46152969b5e013f09348fb266052/ext/BijectorsReverseDiffExt.jl#L21-L40"
+    },
+    {
+      "id": "src-head-doctest",
+      "label": "Head: link/invlink doctests",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/e0b1d94dcc8e46152969b5e013f09348fb266052/src/Bijectors.jl#L138-L179"
+    },
+    {
+      "id": "rd-328",
+      "label": "ReverseDiff.jl PR 328",
+      "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328"
+    },
+    {
+      "id": "pr490",
+      "label": "Bijectors.jl PR 490 (stacked on this PR)",
+      "url": "https://github.com/TuringLang/Bijectors.jl/pull/490"
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "group": "overview",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Bijectors.jl provides invertible transforms between constrained and unconstrained spaces. Its ReverseDiff extension (BijectorsReverseDiffExt) teaches ReverseDiff how to differentiate several of those transforms, using @grad (hand-written pullbacks) and @grad_from_chainrules (reuse ChainRules rrules).\n\nWith ReverseDiff 1.18.8 the extension fails to precompile with UndefVarError: pd_from_upper. ReverseDiff PR 328 changed @grad_from_chainrules so the named function must exist in the calling scope. The PR also fixes the PlanarLayer inverse gradient, which depends on find_alpha, and makes two doctests independent of how Distributions prints a LogNormal. Package version goes to 0.16.4.",
+          "refs": [
+            "rd-328"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Affected users: anyone loading ReverseDiff together with Bijectors (including Turing users with ReverseDiff AD). The load failure affects all of them on ReverseDiff 1.18.8; the find_alpha changes affect only inverse PlanarLayer."
+        }
+      ]
+    },
+    {
+      "id": "changes",
+      "title": "Changes",
+      "group": "changes",
+      "blocks": [
+        {
+          "type": "table",
+          "title": "What changes",
+          "columns": [
+            "Area",
+            "Before",
+            "After"
+          ],
+          "rows": [
+            [
+              "Rules for pd_from_upper, _link_chol_lkj_from_upper, _link_chol_lkj_from_lower",
+              "@grad_from_chainrules declared on names that the extension never imports",
+              "Rules deleted"
+            ],
+            [
+              "find_alpha @grad",
+              "Signature requires TrackedReal arguments; partial derivatives computed once at record time from tracked inputs; pullback closes over them",
+              "Signature accepts Real; partials recomputed inside the pullback from current input values"
+            ],
+            [
+              "link / invlink doctests",
+              "Print LogNormal{Float64}(μ=0.0, σ=1.0)",
+              "Statement ends with a semicolon so nothing is printed"
+            ],
+            [
+              "Version, HISTORY",
+              "0.16.3",
+              "0.16.4 with four entries"
+            ]
+          ],
+          "refs": [
+            "ext-base-pd-upper",
+            "ext-base-lkj",
+            "ext-head-find-alpha",
+            "src-head-doctest"
+          ]
+        },
+        {
+          "type": "compare",
+          "title": "find_alpha pullback",
+          "before": "@grad function find_alpha(wt_y::TrackedReal, wt_u_hat::TrackedReal, b::TrackedReal)\n    α = find_alpha(value(wt_y), value(wt_u_hat), value(b))\n    ∂wt_y = inv(1 + wt_u_hat * sech(α + b)^2)   # uses tracked values\n    ...\n    find_alpha_pullback(Δ::Real) = (Δ * ∂wt_y, Δ * ∂wt_u_hat, Δ * ∂b)\n    return α, find_alpha_pullback\nend",
+          "after": "@grad function find_alpha(wt_y::Real, wt_u_hat::Real, b::Real)\n    α = find_alpha(value(wt_y), value(wt_u_hat), value(b))\n    function find_alpha_pullback(Δ::Real)\n        u, c = value(wt_u_hat), value(b)\n        a = find_alpha(value(wt_y), u, c)\n        ∂wt_y = inv(1 + u * sech(a + c)^2)\n        return (Δ * ∂wt_y, -Δ * tanh(a + c) * ∂wt_y, Δ * (∂wt_y - 1))\n    end\n    return α, find_alpha_pullback\nend",
+          "refs": [
+            "ext-base-find-alpha",
+            "ext-head-find-alpha"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "title": "Review",
+      "group": "review",
+      "blocks": [
+        {
+          "type": "finding",
+          "title": "Deleting the three rules is consistent with the stated cause",
+          "status": "verified",
+          "text": "At base, pd_from_upper, _link_chol_lkj_from_upper and _link_chol_lkj_from_lower are not in the using/import lists of the extension, so the macro calls referred to names with no binding in the extension module. The head import list still does not contain them, so removal cannot drop a rule that was actually attached to a Bijectors function. This is a source check only; the precompile error on ReverseDiff 1.18.8 was not reproduced here.",
+          "refs": [
+            "ext-base-pd-upper",
+            "ext-base-lkj",
+            "ext-head-imports"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "Pullback algebra matches the old partials",
+          "status": "verified",
+          "text": "With α defined by α + u·tanh(α + b) = y, the new pullback returns 1/(1+u·sech²) for y, −tanh(α+b)·that for u, and (that − 1) for b. These are the same formulas as before, now evaluated at the current values. Checked by reading the code, not by running it.",
+          "refs": [
+            "ext-head-find-alpha"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "Each backward pass reruns the root finder",
+          "status": "question",
+          "text": "find_alpha_pullback calls find_alpha again, which runs a Roots-based solve (A42 since 0.16.2). The recorded forward value α is discarded. That is the price of replay-safety, but it doubles root-finding cost per PlanarLayer inverse gradient. Is that acceptable, or should the pullback reuse α when inputs have not changed? Not benchmarked.",
+          "refs": [
+            "ext-head-find-alpha"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "Untracked-argument claim is only partly visible in source",
+          "status": "unverified",
+          "text": "The PR says the rule now accepts untracked arguments. The @grad body does accept Real, but the track entry point is still find_alpha(wt_y::T, wt_u_hat::T, b::T) where {T<:TrackedReal}, which requires all three arguments to be the same tracked type. How the untracked-parameter replay reaches the @grad method was not traced, and no reproduction was run.",
+          "refs": [
+            "ext-head-find-alpha"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "No regression tests in the diff",
+          "status": "suggestion",
+          "text": "Only HISTORY.md, Project.toml, the extension and src/Bijectors.jl change. The repository's ReverseDiff integration tests exist (test/integration_tests/reversediff) but nothing was added for tape reuse at a new input or for untracked PlanarLayer parameters, which are the behaviors the HISTORY entries describe. A small test that compiles a tape, changes the input and compares to ForwardDiff would lock these in. The PR body reports comparisons against main but they are not committed.",
+          "refs": [
+            "ext-head-find-alpha"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "Compat bounds are unchanged",
+          "status": "suggestion",
+          "text": "Project.toml keeps ReverseDiff = \"1\". Deleting the rules is harmless on older versions, and the new find_alpha uses only value and track, so the wide bound seems fine. The replay behavior on versions before 1.18.4 was not checked.",
+          "refs": [
+            "ext-head-imports"
+          ]
+        },
+        {
+          "type": "check",
+          "title": "Scope of checking",
+          "status": "unverified",
+          "text": "Source reading at the pinned base and head, plus linked ReverseDiff PR 328. No package code or tests were run, so gradient equivalence with main and the doctest output are taken from the PR author. PR 490 is stacked on this one and relies on its 0.16.4 bump."
+        },
+        {
+          "type": "check",
+          "title": "Review scope",
+          "status": "unverified",
+          "text": "Cloud source review. Package-test results were not verified.\n\nLinked work: public repositories only, depth 2, at most 15 items. Read status describes collection, not semantic review."
+        }
+      ]
+    },
+    {
+      "id": "details",
+      "title": "Details",
+      "group": "details",
+      "blocks": [
+        {
+          "type": "table",
+          "title": "Declaration inventory (find_alpha)",
+          "columns": [
+            "Change",
+            "Declaration",
+            "Location"
+          ],
+          "rows": [
+            [
+              "removed",
+              "find_alpha(wt_y::TrackedReal, wt_u_hat::TrackedReal, b::TrackedReal) @grad method",
+              "ext/BijectorsReverseDiffExt.jl:201 (base)"
+            ],
+            [
+              "added",
+              "find_alpha(wt_y::Real, wt_u_hat::Real, b::Real) @grad method",
+              "ext/BijectorsReverseDiffExt.jl:199 (head)"
+            ],
+            [
+              "removed",
+              "find_alpha_pullback(Δ::Real), closure over precomputed partials",
+              "ext/BijectorsReverseDiffExt.jl:207 (base)"
+            ],
+            [
+              "added",
+              "find_alpha_pullback(Δ::Real), recomputes from current inputs",
+              "ext/BijectorsReverseDiffExt.jl:202 (head)"
+            ]
+          ],
+          "refs": [
+            "ext-head-find-alpha",
+            "ext-base-find-alpha"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Limits: @grad and @grad_from_chainrules were not macro-expanded, so only written declarations are listed. The three deleted @grad_from_chainrules lines have no inventory entry because they declared no definitions. Linked work was collected to depth 2 with at most 15 items; ReverseDiff issues 314, 315, 319 and 320 are fixed by ReverseDiff PR 328 and are the background for the 1.18.8 change."
+        }
+      ]
+    }
+  ]
+}
