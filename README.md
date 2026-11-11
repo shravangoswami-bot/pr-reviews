@@ -4,20 +4,24 @@ Post a public PR URL in the [inbox](https://github.com/shravangoswami-bot/pr-rev
 Only `shravanngoswamii`, `yebai` and `sunxd3` can request reviews.
 
 ```text
-https://github.com/OWNER/REPO/pull/NUMBER
-@shravangoswami-bot review
-@shravangoswami-bot review --fresh
+https://github.com/OWNER/REPO/pull/NUMBER --backend cloud --model sonnet --effort medium
+https://github.com/OWNER/REPO/pull/NUMBER --backend vm --model opus --effort high
 ```
 
-Reviews use Claude cloud with Sonnet 5.5 and medium effort.
-Each PR keeps one session.
+The same flags work with `@shravangoswami-bot review` on a PR.
+Cloud is the default and keeps one session per PR.
 Use `--fresh` to replace it.
-Other model and effort pairs need a matching [cloud task](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md#create-sessions).
+VM reviews use a fresh Claude Code process on a GitHub-hosted runner.
+Both use the owner's Claude subscription.
+
+The configured cloud preset is Sonnet 5.5 with medium effort.
+Other cloud choices need a matching [task preset or linked regular session](https://github.com/shravanngoswamii/reviary/blob/main/docs/cloud.md).
+VM model and effort are chosen per request.
 
 Inbox comments start immediately, subject to GitHub queuing.
-Mentions and reviewer requests are checked every 30 minutes.
-GitHub Actions checks and publishes the report.
-PR code and package tests are not run.
+PR mentions and reviewer requests are checked every 30 minutes.
+Reports and replies state Approve or Hold with reasons.
+The bot does not submit formal approvals or run PR code and package tests.
 
 [Sample report](https://shravangoswami-bot.github.io/pr-reviews/examples/dynamicppl-1529/)
 [Reviary](https://github.com/shravanngoswamii/reviary)
