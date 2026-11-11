@@ -26,16 +26,17 @@ permissions:
   actions: read
 jobs:
   review:
+    cache-mode: write
     if: >-
       vars.REVIARY_ENABLED == 'true' &&
       (github.event_name != 'issue_comment' ||
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
         contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@f12296c80e17ed76e3c2f9482a45e14d3455f719
+    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@5bd21316a1c44e14a47e4d92d20298218ca5e546
     with:
       tool_repository: shravanngoswamii/reviary
-      tool_ref: f12296c80e17ed76e3c2f9482a45e14d3455f719
+      tool_ref: 5bd21316a1c44e14a47e4d92d20298218ca5e546
       config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
