@@ -28,10 +28,10 @@ jobs:
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.PR_LENS_CONFIG).inbox.issue &&
         contains(fromJSON(vars.PR_LENS_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/pr-lens/.github/workflows/review-bot.yml@31bb61fd69360a80bf0a2996307981b72c52e5b0
+    uses: shravanngoswamii/pr-lens/.github/workflows/review-bot.yml@59bb59c0e35adfed6306407924f794daff1ebbd0
     with:
       tool_repository: shravanngoswamii/pr-lens
-      tool_ref: 31bb61fd69360a80bf0a2996307981b72c52e5b0
+      tool_ref: 59bb59c0e35adfed6306407924f794daff1ebbd0
       config_json: ${{ vars.PR_LENS_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
