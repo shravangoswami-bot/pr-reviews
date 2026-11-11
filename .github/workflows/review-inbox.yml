@@ -3,7 +3,7 @@ on:
   issue_comment:
     types: [created]
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '3-59/5 * * * *'
   workflow_dispatch:
     inputs:
       comment_url:
@@ -33,10 +33,10 @@ jobs:
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
         contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@2f7c615b278e222907a07f17fbd350d50b206b88
+    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@c26c27d352cf7c2c934dbfb5a6ca6b2fcb6d4188
     with:
       tool_repository: shravanngoswamii/reviary
-      tool_ref: 2f7c615b278e222907a07f17fbd350d50b206b88
+      tool_ref: c26c27d352cf7c2c934dbfb5a6ca6b2fcb6d4188
       config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}

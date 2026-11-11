@@ -9,7 +9,8 @@ https://github.com/OWNER/REPO/pull/NUMBER --backend vm --model opus --effort hig
 ```
 
 The same flags work with `@shravangoswami-bot review` on a PR.
-Cloud is the default and keeps one session per PR.
+Cloud with Sonnet and medium effort is the default.
+Each PR keeps one cloud session.
 Use `--fresh` to replace it.
 VM reviews use a fresh Claude Code process on a GitHub-hosted runner.
 Both use the owner's Claude subscription.
@@ -19,7 +20,8 @@ Other cloud choices need a matching [task preset or linked regular session](http
 VM model and effort are chosen per request.
 
 Inbox comments start immediately, subject to GitHub queuing.
-PR mentions and reviewer requests are checked every 30 minutes.
+PR mention and reviewer-request checks are scheduled every five minutes.
+GitHub can delay scheduled jobs.
 Reports and replies state Approve or Hold with reasons.
 The bot does not submit formal approvals or run PR code and package tests.
 
