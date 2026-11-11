@@ -1,0 +1,1801 @@
+{
+  "version": 1,
+  "id": "bijectors-490",
+  "title": "Triangular helpers without type-preserving conversion",
+  "summary": "upper_triangular and lower_triangular now use triu and tril, so Adjoint Cholesky factors on Julia 1.13 no longer raise a MethodError.",
+  "conclusion": {
+    "decision": "approve",
+    "summary": "No blocker found in the source-checked scope; runtime behavior was not run.",
+    "reasons": []
+  },
+  "review": {
+    "url": "https://github.com/TuringLang/Bijectors.jl/pull/490",
+    "title": "Fix triangular helpers for adjoint Cholesky factors on Julia 1.13",
+    "base": "2d1580a926b902146a8a5e6b508cabba28eb5c76",
+    "head": "f4f30f5b0b35ca4069f349804fe7624caa2868f3",
+    "checkedAt": "2026-11-11T19:57:27.808Z",
+    "agent": {
+      "name": "Claude Code cloud",
+      "requestedModel": "sonnet",
+      "requestedEffort": "medium",
+      "models": [],
+      "session": "https://claude.ai/code/cse_014W6b7b4YwbUsT9fntcx5dE"
+    }
+  },
+  "sources": [
+    {
+      "id": "pr",
+      "label": "PR description",
+      "url": "https://github.com/TuringLang/Bijectors.jl/pull/490"
+    },
+    {
+      "id": "base-helpers",
+      "label": "Base: triangular helpers",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/2d1580a926b902146a8a5e6b508cabba28eb5c76/src/utils.jl#L10-L12"
+    },
+    {
+      "id": "head-helpers",
+      "label": "Head: triangular helpers",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f4f30f5b0b35ca4069f349804fe7624caa2868f3/src/utils.jl#L10-L12"
+    },
+    {
+      "id": "head-chol",
+      "label": "Head: cholesky_lower and cholesky_upper",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f4f30f5b0b35ca4069f349804fe7624caa2868f3/src/utils.jl#L37-L50"
+    },
+    {
+      "id": "head-callers",
+      "label": "Head: vec_to_triu1 and vec_to_triu use upper_triangular",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f4f30f5b0b35ca4069f349804fe7624caa2868f3/src/utils.jl#L115-L152"
+    },
+    {
+      "id": "head-rd",
+      "label": "Head: ReverseDiff overrides for the helpers",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f4f30f5b0b35ca4069f349804fe7624caa2868f3/ext/BijectorsReverseDiffExt.jl#L184-L194"
+    },
+    {
+      "id": "head-test",
+      "label": "Head: new regression test",
+      "url": "https://github.com/TuringLang/Bijectors.jl/blob/f4f30f5b0b35ca4069f349804fe7624caa2868f3/test/bijectors/pd.jl#L39-L45"
+    },
+    {
+      "id": "upstream",
+      "label": "LinearAlgebra.jl#1186, non-copying Cholesky factors",
+      "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186"
+    }
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "group": "overview",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Bijectors.jl provides bijections between constrained and unconstrained spaces. CorrBijector and VecCorrBijector map correlation matrices using a Cholesky factor.\n\nOn Julia 1.13 the upper factor of a Cholesky object stored as the lower triangle is UpperTriangular(C.factors'), so its parent is an Adjoint. The old upper_triangular tried to convert that matrix back to an Adjoint and threw a MethodError. Mooncake forward mode always stores the lower triangle, so correlation bijectors fail under it. This PR changes the two helpers to triu and tril.",
+          "refs": [
+            "pr",
+            "upstream"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Affected users: Julia 1.13 users of CorrBijector, VecCorrBijector or cholesky_upper, mostly with Mooncake. The helpers are internal functions, not documented API."
+        }
+      ]
+    },
+    {
+      "id": "example",
+      "title": "Example",
+      "group": "changes",
+      "blocks": [
+        {
+          "type": "code",
+          "title": "Input from the PR description",
+          "language": "julia",
+          "code": "A = [2.0 1; 1 2]\nCL = cholesky(Hermitian(A, :L))\nBijectors.upper_triangular(parent(CL.U))"
+        },
+        {
+          "type": "compare",
+          "title": "Result on Julia 1.13 (from the PR description)",
+          "before": "MethodError: the Adjoint parent cannot be produced by convert(typeof(A), UpperTriangular(A)).",
+          "after": "A Matrix with the upper triangle of the factor. The new test expects it to equal Matrix(CL.U)."
+        },
+        {
+          "type": "text",
+          "text": "This comparison comes from the PR description and source reading. It was not run here.",
+          "refs": [
+            "pr",
+            "head-test"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "change",
+      "title": "Changes",
+      "group": "changes",
+      "blocks": [
+        {
+          "type": "table",
+          "title": "Files in the PR",
+          "columns": [
+            "File",
+            "Change"
+          ],
+          "rows": [
+            [
+              "src/utils.jl",
+              "lower_triangular is tril(A) and upper_triangular is triu(A)."
+            ],
+            [
+              "test/bijectors/pd.jl",
+              "New testset compares each helper on an Adjoint factor with the Matrix of the factor."
+            ],
+            [
+              "HISTORY.md",
+              "Entry for the MethodError fix under 0.16.4."
+            ]
+          ]
+        },
+        {
+          "type": "diff",
+          "title": "Helper definitions",
+          "text": "The PR's change to src/utils.jl.",
+          "path": "src/utils.jl",
+          "before": "lower_triangular(A::AbstractMatrix) = convert(typeof(A), LowerTriangular(A))\nupper_triangular(A::AbstractMatrix) = convert(typeof(A), UpperTriangular(A))",
+          "after": "lower_triangular(A::AbstractMatrix) = tril(A)\nupper_triangular(A::AbstractMatrix) = triu(A)",
+          "scope": "pr",
+          "verification": "source-checked",
+          "refs": [
+            "base-helpers",
+            "head-helpers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "title": "Design",
+      "group": "design",
+      "blocks": [
+        {
+          "type": "diagram",
+          "id": "helper-callers",
+          "title": "Who calls the triangular helpers",
+          "text": "Read left to right: functions in src/utils.jl and the ReverseDiff extension call the two helpers, which now call tril and triu. The scope is src/utils.jl and the ReverseDiff extension. Other callers were not searched in other extensions.",
+          "direction": "LR",
+          "nodes": [
+            {
+              "id": "cholesky-lower",
+              "label": "cholesky_lower",
+              "kind": "function",
+              "text": "Returns the lower Cholesky factor as a Matrix.",
+              "signature": "cholesky_lower(X::AbstractMatrix)",
+              "refs": [
+                "head-chol"
+              ]
+            },
+            {
+              "id": "cholesky-upper",
+              "label": "cholesky_upper",
+              "kind": "function",
+              "text": "Returns the upper Cholesky factor as a Matrix. Fails on Julia 1.13 at base when the factor is stored lower.",
+              "signature": "cholesky_upper(X::AbstractMatrix)",
+              "refs": [
+                "head-chol"
+              ]
+            },
+            {
+              "id": "vec-to-triu",
+              "label": "vec_to_triu and vec_to_triu1",
+              "kind": "group",
+              "text": "Group of two functions that fill an upper triangle from a vector and then call upper_triangular. The group implies no call between its members.",
+              "refs": [
+                "head-callers"
+              ]
+            },
+            {
+              "id": "pd-from",
+              "label": "pd_from_lower and pd_from_upper",
+              "kind": "group",
+              "text": "Group of two helpers that call lower_triangular and upper_triangular before forming a product.",
+              "refs": [
+                "head-helpers"
+              ]
+            },
+            {
+              "id": "lower-triangular",
+              "label": "lower_triangular",
+              "kind": "method",
+              "text": "Changed: now tril(A).",
+              "signature": "lower_triangular(A::AbstractMatrix)",
+              "refs": [
+                "base-helpers",
+                "head-helpers"
+              ]
+            },
+            {
+              "id": "upper-triangular",
+              "label": "upper_triangular",
+              "kind": "method",
+              "text": "Changed: now triu(A).",
+              "signature": "upper_triangular(A::AbstractMatrix)",
+              "refs": [
+                "base-helpers",
+                "head-helpers"
+              ]
+            },
+            {
+              "id": "tril-triu",
+              "label": "tril and triu",
+              "kind": "function",
+              "text": "Standard library functions. They return a new Matrix for an Adjoint input.",
+              "refs": [
+                "head-helpers"
+              ]
+            },
+            {
+              "id": "rd-ext",
+              "label": "ReverseDiff overrides",
+              "kind": "group",
+              "text": "Overrides for TrackedMatrix that call the helpers on the underlying values.",
+              "refs": [
+                "head-rd"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "e-cl",
+              "from": "cholesky-lower",
+              "to": "lower-triangular",
+              "label": "calls",
+              "status": "source",
+              "text": "Passes parent(cholesky(...).L).",
+              "refs": [
+                "head-chol"
+              ]
+            },
+            {
+              "id": "e-cu",
+              "from": "cholesky-upper",
+              "to": "upper-triangular",
+              "label": "calls",
+              "status": "source",
+              "text": "Passes parent(cholesky(...).U).",
+              "refs": [
+                "head-chol"
+              ]
+            },
+            {
+              "id": "e-v",
+              "from": "vec-to-triu",
+              "to": "upper-triangular",
+              "label": "calls",
+              "status": "source",
+              "text": "Passes a Matrix built by update_triu_from_vec.",
+              "refs": [
+                "head-callers"
+              ]
+            },
+            {
+              "id": "e-pd",
+              "from": "pd-from",
+              "to": "lower-triangular",
+              "label": "calls",
+              "status": "source",
+              "text": "pd_from_lower calls lower_triangular. pd_from_upper calls upper_triangular.",
+              "refs": [
+                "head-helpers"
+              ]
+            },
+            {
+              "id": "e-l",
+              "from": "lower-triangular",
+              "to": "tril-triu",
+              "label": "calls",
+              "status": "source",
+              "text": "Calls tril at head. At base it called convert(typeof(A), LowerTriangular(A)).",
+              "refs": [
+                "head-helpers",
+                "base-helpers"
+              ]
+            },
+            {
+              "id": "e-u",
+              "from": "upper-triangular",
+              "to": "tril-triu",
+              "label": "calls",
+              "status": "source",
+              "text": "Calls triu at head. At base it called convert(typeof(A), UpperTriangular(A)).",
+              "refs": [
+                "head-helpers",
+                "base-helpers"
+              ]
+            },
+            {
+              "id": "e-rd",
+              "from": "rd-ext",
+              "to": "lower-triangular",
+              "label": "calls",
+              "status": "source",
+              "text": "The @grad bodies call the helpers on plain values, so they reach tril and triu. Not executed here.",
+              "refs": [
+                "head-rd"
+              ]
+            }
+          ],
+          "baseline": {
+            "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76",
+            "scope": "Same helpers at base. The two helpers call convert with LowerTriangular or UpperTriangular instead of tril and triu.",
+            "refs": [
+              "base-helpers"
+            ],
+            "nodes": [
+              {
+                "id": "cholesky-lower",
+                "label": "cholesky_lower",
+                "kind": "function",
+                "text": "Returns the lower Cholesky factor as a Matrix.",
+                "signature": "cholesky_lower(X::AbstractMatrix)"
+              },
+              {
+                "id": "cholesky-upper",
+                "label": "cholesky_upper",
+                "kind": "function",
+                "text": "Returns the upper Cholesky factor as a Matrix. Fails on Julia 1.13 at base when the factor is stored lower.",
+                "signature": "cholesky_upper(X::AbstractMatrix)"
+              },
+              {
+                "id": "vec-to-triu",
+                "label": "vec_to_triu and vec_to_triu1",
+                "kind": "group",
+                "text": "Group of two functions that fill an upper triangle from a vector and then call upper_triangular. The group implies no call between its members."
+              },
+              {
+                "id": "pd-from",
+                "label": "pd_from_lower and pd_from_upper",
+                "kind": "group",
+                "text": "Group of two helpers that call lower_triangular and upper_triangular before forming a product."
+              },
+              {
+                "id": "lower-triangular",
+                "label": "lower_triangular",
+                "kind": "method",
+                "text": "Called convert(typeof(A), LowerTriangular(A)).",
+                "signature": "lower_triangular(A::AbstractMatrix)"
+              },
+              {
+                "id": "upper-triangular",
+                "label": "upper_triangular",
+                "kind": "method",
+                "text": "Called convert(typeof(A), UpperTriangular(A)).",
+                "signature": "upper_triangular(A::AbstractMatrix)"
+              },
+              {
+                "id": "rd-ext",
+                "label": "ReverseDiff overrides",
+                "kind": "group",
+                "text": "Overrides for TrackedMatrix that call the helpers on the underlying values."
+              }
+            ],
+            "edges": [
+              {
+                "id": "e-cl",
+                "from": "cholesky-lower",
+                "to": "lower-triangular",
+                "label": "calls",
+                "status": "source",
+                "text": "Passes parent(cholesky(...).L)."
+              },
+              {
+                "id": "e-cu",
+                "from": "cholesky-upper",
+                "to": "upper-triangular",
+                "label": "calls",
+                "status": "source",
+                "text": "Passes parent(cholesky(...).U)."
+              },
+              {
+                "id": "e-v",
+                "from": "vec-to-triu",
+                "to": "upper-triangular",
+                "label": "calls",
+                "status": "source",
+                "text": "Passes a Matrix built by update_triu_from_vec."
+              },
+              {
+                "id": "e-pd",
+                "from": "pd-from",
+                "to": "lower-triangular",
+                "label": "calls",
+                "status": "source",
+                "text": "pd_from_lower calls lower_triangular. pd_from_upper calls upper_triangular."
+              },
+              {
+                "id": "e-rd",
+                "from": "rd-ext",
+                "to": "lower-triangular",
+                "label": "calls",
+                "status": "source",
+                "text": "The @grad bodies call the helpers on plain values, so they reach tril and triu. Not executed here."
+              }
+            ]
+          }
+        },
+        {
+          "type": "table",
+          "title": "Benefits and costs",
+          "columns": [
+            "Aspect",
+            "Assessment"
+          ],
+          "rows": [
+            [
+              "Benefit",
+              "tril and triu return a plain Matrix for any AbstractMatrix input, including an Adjoint. This removes the failing conversion."
+            ],
+            [
+              "Cost",
+              "The result type is no longer typeof(A). For a Matrix input nothing changes. For other input types the output may differ. The callers read here pass Matrix values."
+            ],
+            [
+              "AD",
+              "ReverseDiff overrides still intercept TrackedMatrix. Other backends now differentiate through tril and triu instead of convert and LowerTriangular. This was not checked."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "findings",
+      "title": "Findings",
+      "group": "review",
+      "blocks": [
+        {
+          "type": "finding",
+          "title": "Runtime behavior is not reproduced",
+          "status": "unverified",
+          "text": "The MethodError and the fix rest on the PR description and on source reading. No Julia 1.13 run was done in this review, per the source-only rule.",
+          "refs": [
+            "pr",
+            "upstream"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "The regression test passes trivially before Julia 1.13",
+          "status": "suggestion",
+          "text": "On earlier Julia versions parent(CL.U) is already a Matrix, so the test exercises the old code path without failing. It guards the bug only on 1.13 and later. The test also calls the helpers directly and does not call cholesky_upper or cholesky_lower on a lower-stored factor. A direct call of cholesky_upper with a Hermitian lower input would cover the reported path. This is a nonblocking suggestion.",
+          "refs": [
+            "head-test",
+            "head-chol"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "AD through tril and triu with Mooncake and others",
+          "status": "question",
+          "text": "The failure was reported under Mooncake forward mode. After the change those backends differentiate tril and triu. The PR says the Mooncake integration cases fail on 1.13 in CI. Does CI on this head show those cases passing? The check was not made here.",
+          "refs": [
+            "pr",
+            "head-rd"
+          ]
+        },
+        {
+          "type": "finding",
+          "title": "Output type of the helpers",
+          "status": "question",
+          "text": "Dropping typeof(A) changes the output type for inputs that are not Matrix. Only Matrix inputs were found at the callers read here, so no change is expected. A note in the comment above the helpers would record that the result is a Matrix.",
+          "refs": [
+            "head-helpers",
+            "head-callers"
+          ]
+        },
+        {
+          "type": "check",
+          "title": "Review scope",
+          "status": "unverified",
+          "text": "Cloud source review. Package-test results were not verified.\n\nLinked work: public repositories only, depth 2, at most 15 items. Read status describes collection, not semantic review."
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "title": "Checks",
+      "group": "review",
+      "blocks": [
+        {
+          "type": "check",
+          "title": "Source reading of the changed helpers and callers",
+          "status": "passed",
+          "text": "Read src/utils.jl, the ReverseDiff overrides and the new test at the head commit. The change matches the description.",
+          "refs": [
+            "head-helpers",
+            "head-chol",
+            "head-callers",
+            "head-rd",
+            "head-test"
+          ]
+        },
+        {
+          "type": "check",
+          "title": "Package tests and Julia 1.13 behavior",
+          "status": "unverified",
+          "text": "Not run. This review inspected source only."
+        }
+      ]
+    },
+    {
+      "id": "details",
+      "title": "Definitions and linked work",
+      "group": "details",
+      "blocks": [
+        {
+          "type": "inventory",
+          "title": "Definitions",
+          "text": "Two helper methods changed. Test code lives in unexpanded macros.",
+          "data": {
+            "version": 1,
+            "language": "Julia",
+            "parser": "Julia 1.10.13 Meta.parseall",
+            "base": "2d1580a926b902146a8a5e6b508cabba28eb5c76",
+            "head": "f4f30f5b0b35ca4069f349804fe7624caa2868f3",
+            "scope": [
+              "."
+            ],
+            "files": [
+              "src/utils.jl",
+              "test/bijectors/pd.jl"
+            ],
+            "items": [
+              {
+                "id": "def-14df55f9eaf39f08c573",
+                "kind": "method",
+                "name": "lower_triangular",
+                "signature": "lower_triangular(A::AbstractMatrix)",
+                "change": "changed",
+                "before": {
+                  "signature": "lower_triangular(A::AbstractMatrix)",
+                  "fingerprint": "a996a47d60e05578a6ce8d903c5e14b1b6300f2f53e00aa39572c23ae5206793",
+                  "locations": [
+                    {
+                      "path": "src/utils.jl",
+                      "line": 11
+                    }
+                  ]
+                },
+                "after": {
+                  "signature": "lower_triangular(A::AbstractMatrix)",
+                  "fingerprint": "c3e244175b739006ae65287778c1b074f59f1e8e093da46619f63d2832bb20ee",
+                  "locations": [
+                    {
+                      "path": "src/utils.jl",
+                      "line": 11
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "def-d8c4ac3e3bfe766cb3ba",
+                "kind": "method",
+                "name": "upper_triangular",
+                "signature": "upper_triangular(A::AbstractMatrix)",
+                "change": "changed",
+                "before": {
+                  "signature": "upper_triangular(A::AbstractMatrix)",
+                  "fingerprint": "2850a08496dbff5250a2a481874d6e912e0e93f36a7703ed77c0c3bb8e27a9ad",
+                  "locations": [
+                    {
+                      "path": "src/utils.jl",
+                      "line": 12
+                    }
+                  ]
+                },
+                "after": {
+                  "signature": "upper_triangular(A::AbstractMatrix)",
+                  "fingerprint": "6d4c3aa38f733562c5723ed0deb4d91be577a39356b7e8e723b99d1fe0fc9b5a",
+                  "locations": [
+                    {
+                      "path": "src/utils.jl",
+                      "line": 12
+                    }
+                  ]
+                }
+              }
+            ],
+            "notes": [
+              {
+                "line": 4,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @testset was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 16,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @testset was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 30,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 31,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 34,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 35,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "2d1580a926b902146a8a5e6b508cabba28eb5c76"
+              },
+              {
+                "line": 4,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @testset was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 16,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @testset was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 30,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 31,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 34,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 35,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 39,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @testset was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 42,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              },
+              {
+                "line": 44,
+                "path": "test/bijectors/pd.jl",
+                "text": "Macro @test was not expanded. Only written declarations are listed.",
+                "revision": "f4f30f5b0b35ca4069f349804fe7624caa2868f3"
+              }
+            ]
+          },
+          "links": [
+            {
+              "definition": "def-14df55f9eaf39f08c573",
+              "diagram": "helper-callers",
+              "node": "lower-triangular"
+            },
+            {
+              "definition": "def-d8c4ac3e3bfe766cb3ba",
+              "diagram": "helper-callers",
+              "node": "upper-triangular"
+            }
+          ],
+          "omissions": []
+        },
+        {
+          "type": "linked-work",
+          "id": "linked-work",
+          "title": "Linked issues and pull requests",
+          "text": "Discovery paths. Explanations need review.",
+          "root": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+          "checkedAt": "2026-11-11T19:57:27.806Z",
+          "scope": "Bodies, paginated comments, submitted/inline reviews and incoming timeline references. Mentions may be quoted or incidental.",
+          "analysis": "draft",
+          "complete": false,
+          "limits": {
+            "maxDepth": 2,
+            "maxItems": 15
+          },
+          "notes": [
+            "Only three items have explanations. The rest show collection status only and were not reviewed."
+          ],
+          "nodes": [
+            {
+              "id": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "url": "https://github.com/TuringLang/Bijectors.jl/pull/490",
+              "title": "Fix triangular helpers for adjoint Cholesky factors on Julia 1.13",
+              "kind": "pr",
+              "state": "open",
+              "summary": "The PR under review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+              "title": "remove copy-allocation on accessing `cholesky` factors (`.L`, `.U`)",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Upstream change that makes Cholesky factors non-copying. The PR cites it as the cause. Read through the PR description only.",
+              "status": "read"
+            },
+            {
+              "id": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
+              "title": "Fix the ReverseDiff extension for ReverseDiff 1.18.4 and later",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Merged base PR that this PR is stacked on. Not reviewed here.",
+              "status": "read"
+            },
+            {
+              "id": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "url": "https://github.com/JuliaLang/julia/pull/42920",
+              "title": "Avoid allocation when accessing `cholesky` factors (.L, .U)",
+              "kind": "pr",
+              "state": "closed",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+              "title": "Use `BLAS.trsm!` instead of `LAPACK.trtrs!` in left-triangular solves",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-70b31d57f5531058adb32208015e9885f8601a7c35b569bf2f3ed879295248e0",
+              "url": "https://github.com/JuliaStats/PDMats.jl/issues/215",
+              "title": "Eventually retire `chol_lower` and `chol_upper`",
+              "kind": "issue",
+              "state": "open",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1199",
+              "title": "Fix doctest",
+              "kind": "pr",
+              "state": "closed",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+              "title": "Backports release 1.12",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-33dacba1926e3573cb2f5aa6a3ef651aadeaed1bcd06302b744ce7ce16999417",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/929",
+              "title": "Improve Cholesky type inference without copying",
+              "kind": "issue",
+              "state": "closed",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+              "title": "Fix argument handling in `@grad_from_chainrules`",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-9dad47bacdc7ea2e4c2a644a2cf1ad8f21475b9b00fa648b2e5b035477ceee2f",
+              "url": "https://github.com/shravangoswami-bot/pr-reviews/issues/1",
+              "title": "Request a PR review",
+              "kind": "issue",
+              "state": "open",
+              "summary": "Needs an explanation after review.",
+              "status": "read"
+            },
+            {
+              "id": "gh-7258ca29063a5970e3ff956c9341df7ab12065dbe94d22607ecd01befe3fb38a",
+              "url": "https://github.com/JuliaLang/julia/issues/38389",
+              "title": "JuliaLang/julia#38389",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-59dac50543e3615c35724956c652d0fd8ce8c1aad9b5dbf7b37228a601c5f68d",
+              "url": "https://github.com/JuliaStats/PDMats.jl/issues/143",
+              "title": "JuliaStats/PDMats.jl#143",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-e35681c83aae476de48e9fac6137b474c10a59d33b7a00cfd015c0286441bf64",
+              "url": "https://github.com/JuliaGaussianProcesses/ParameterHandling.jl/pull/39",
+              "title": "JuliaGaussianProcesses/ParameterHandling.jl#39",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-0ba0f8e526b2f8a817fadd7c7d3ab1d14ad254baf5198b3d2a8ae37dfa269ade",
+              "url": "https://github.com/FluxML/Zygote.jl/pull/1117",
+              "title": "FluxML/Zygote.jl#1117",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-94911edceb776f761b36c0c9b9a24024b51603d0aba8ef35d3d52ba455f8d72d",
+              "url": "https://github.com/JuliaLang/julia/pull/57509",
+              "title": "JuliaLang/julia#57509",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-d31eb8a9e8ec6fd4f307b4892e647fe7574177b1ea782482832aa57cbeae16e9",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1239",
+              "title": "JuliaLang/LinearAlgebra.jl#1239",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-bb9eb6f9c01f6bec642a332b459190c30786e55ce1edd057d36317e44d4ff281",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1405",
+              "title": "JuliaLang/LinearAlgebra.jl#1405",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-48adf93cd5026355502acb1d3d01af5d6d8b4c2face0fd4371d473ac8348fa44",
+              "url": "https://github.com/EnzymeAD/Enzyme.jl/issues/2813",
+              "title": "EnzymeAD/Enzyme.jl#2813",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-8708a3b170e7b773a8501a86c9e36a577016f7ad586dcff7fc1a0f011f101e6c",
+              "url": "https://github.com/JuliaLang/julia/pull/57347",
+              "title": "JuliaLang/julia#57347",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-a0e0cb6c71c898a070ae1c1148da77d2569c36581880af4a7a8ab642cf086ab3",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1207",
+              "title": "JuliaLang/LinearAlgebra.jl#1207",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-9ce475aadc05daca9ff2dc9c2486b1fc8d407079def5aae87885587fd8d069c5",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1196",
+              "title": "JuliaLang/LinearAlgebra.jl#1196",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-5cc6e4af93d34801f511f5a221f00edadfae8fd0ba25bd9e8120465c9f5796c0",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1202",
+              "title": "JuliaLang/LinearAlgebra.jl#1202",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-7a2c4be05526a3544921f5e79dc79d03925323ff55988983da67cd85d5ec4c0d",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1203",
+              "title": "JuliaLang/LinearAlgebra.jl#1203",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-b37ab89c355371e6587ae8b8f35a8b907f62500e0fad264eb9ac16120ce72707",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1210",
+              "title": "JuliaLang/LinearAlgebra.jl#1210",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-e6bd1ff979d5eee8e9e23c7f3a64cf8d0bdc822b719f95b58c90c16517a4fa22",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1214",
+              "title": "JuliaLang/LinearAlgebra.jl#1214",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-16d361488bc9cea686164fe78a9a1e35826afe33ef84ea639c3421b1eec8906c",
+              "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/1237",
+              "title": "JuliaLang/LinearAlgebra.jl#1237",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-2f47ffd3abdee072f8e3c4c2b6af73af3ed6c85a83ea5b67677a3030f4820e40",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/314",
+              "title": "JuliaDiff/ReverseDiff.jl#314",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-7ad78946a3d56e3ae5731e8b900810f57cb36028b57b94caa2e8db482bf63ca3",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/315",
+              "title": "JuliaDiff/ReverseDiff.jl#315",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-1dd780474b4767b5309af04c876c5c9d1c8b8ca756ca362f3f0b45f11947c384",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/319",
+              "title": "JuliaDiff/ReverseDiff.jl#319",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-50a7f92125dea55897646ee186bb3dd7eee0970b1b28cfd2668c697b27c99388",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/320",
+              "title": "JuliaDiff/ReverseDiff.jl#320",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-e937df212c2495580c7accedbc7ec928073cd6a69ca18e81158a938671b051fc",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/316",
+              "title": "JuliaDiff/ReverseDiff.jl#316",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-a8cd98ef741528c946454ebfdaaab93d77764fc6f275a30ff86b1fa001525719",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/issues/318",
+              "title": "JuliaDiff/ReverseDiff.jl#318",
+              "kind": "unknown",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-2fe7e0f6afc8462955a5f5a0d78ccd7e0aec720a4eeea86d3dc9b61adccf4123",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/331",
+              "title": "JuliaDiff/ReverseDiff.jl#331",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            },
+            {
+              "id": "gh-d5ac1d62d8d603de5fc6f7ac860b9e162bcd336bf290513b591879289d609af7",
+              "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/330",
+              "title": "JuliaDiff/ReverseDiff.jl#330",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read.",
+              "status": "unread",
+              "detail": "Depth limit."
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-5296b86e2f0d3e1d015a59bd79b0fa6b36446e5236b8e61a7692373da04c0f7d",
+              "from": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/490",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-bacf567533e9e09ab11bb5826c31908cfa7af3d28668784d6bf6971e237375c8",
+              "from": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "to": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/490",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-339a1b349d8f391ece9f8af3d4c8c050d6ad1fdcee3ab96ff89eb03e70b6cca1",
+              "from": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "to": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/490#issuecomment-6790508013",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-ca885ae0561cec82b3c9a1472a6e5fec6a3a38ca25111333bb9071b5bd824989",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-b222468b7017c540a2b3b85a5e7ebb3a0fdea16d02c461b8a918609ab8cfd1fd",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186#issuecomment-2630638496",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-580e712417af88f1b28e2c7a0d9aa3cd4ff3de41d66b263f664c4cbb42dd49d7",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186#issuecomment-2633721452",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-0e4aad442a3cfc008f8eb3d4d1ecf16b1c223705cdcf0cc42c080bccd5c8dfff",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-70b31d57f5531058adb32208015e9885f8601a7c35b569bf2f3ed879295248e0",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-f6bcf19c45c1212de97efe993bb4a0ab2157327cfb55806f83fa293ff1ee5b4c",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-ba019153458735d843630285fd2d31dca01c0fb7da3b640417923828f6f25111",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-0a97ba8bb363d63d74842c0cd6626eaff0056308bc2fdd556f1c91dc0b39d334",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-33dacba1926e3573cb2f5aa6a3ef651aadeaed1bcd06302b744ce7ce16999417",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-c4b9fd4c1994abad0deda8a1c7f37883ef7aec5a9f7e4c9d9e3cdbfd4903750e",
+              "from": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "to": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1186",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-05b4530146f1522bd21c69d65c8af4e630b672e28c85da8c34536ba7ff6126c6",
+              "from": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "to": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-6d6228c6c85d0e55b8c3a18171aaee207f062eb3cbdca2b3241a79f55faa5e17",
+              "from": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "to": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/489#issuecomment-6770655286",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-c45c7df7dd033459b40ca60c1ab1c26d403d3a7668a592eefe589861e490f811",
+              "from": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "to": "gh-37e0cff142a1956eeb367e16d522a088f104fdc749d3a488f87e15fdcba7c63b",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-94d5b21de10469971aad82efcd69eb83715c36ea58eb0e9825c641fed448c29e",
+              "from": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "to": "gh-9dad47bacdc7ea2e4c2a644a2cf1ad8f21475b9b00fa648b2e5b035477ceee2f",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/Bijectors.jl/pull/489",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-414fadaac1bac3d5df80af070eb949d741438e48589be3abc109cd75aa83f04f",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-7258ca29063a5970e3ff956c9341df7ab12065dbe94d22607ecd01befe3fb38a",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920#issuecomment-958800580",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-018a2bd27e8c94fb2c35aeecd4fbafb09101397a357bbc07458ad1a5dcf80fb7",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-59dac50543e3615c35724956c652d0fd8ce8c1aad9b5dbf7b37228a601c5f68d",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920#issuecomment-959355221",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-7c291fa314afddb62c245cef5f5b00f37b910580f7922fe68dab38a92a64fd2a",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-59dac50543e3615c35724956c652d0fd8ce8c1aad9b5dbf7b37228a601c5f68d",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-be400e196625ff34656adbb74ac1befaecd3cfe33ff1a573c43604a6511b1934",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-e35681c83aae476de48e9fac6137b474c10a59d33b7a00cfd015c0286441bf64",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-dc5e21fade4dbb5101720ef8b85bdc3ee8befea50aff77c83c71691b2c94611c",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-0ba0f8e526b2f8a817fadd7c7d3ab1d14ad254baf5198b3d2a8ae37dfa269ade",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-db567579bfb47b2f7c36b5b431d943741dce95301c7bfaad68a4b3120227bf29",
+              "from": "gh-80162ffe2e68e66a8b94781e85993afe25bad50ac8f63c7adefdac9f79f97983",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/pull/42920",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-4cac0f0d6d26181924ce0de1e6090fbbcdcd7986fd551fc93c865e367173073e",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194#issuecomment-2635249083",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-70c576998f6aed916e558a347bd583fb854dc090fd7cb9b6d8e13efd6b67a62c",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-b1b128f68f5a8c498d65df44f468aa12ff21557b88bb77542b581246302b80f7",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-4cdfc2a060a7efcb20a42e9b6d1297be7a2731c607d058be766fd14465e80535",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-94911edceb776f761b36c0c9b9a24024b51603d0aba8ef35d3d52ba455f8d72d",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-284ffa2d5102bc58503a815c96c7f17ae2535960251a09e0f480ba1674cb7761",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-d31eb8a9e8ec6fd4f307b4892e647fe7574177b1ea782482832aa57cbeae16e9",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-ea9a764ab03c4fdeb6a42ff3fc6ee64f3005b49aed073d2cfe73eab5f1ddedf6",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-bb9eb6f9c01f6bec642a332b459190c30786e55ce1edd057d36317e44d4ff281",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-6242ff34b64c52afde55a1e82c943c136e90b26716ad367b45009ac32d17cf2b",
+              "from": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "to": "gh-48adf93cd5026355502acb1d3d01af5d6d8b4c2face0fd4371d473ac8348fa44",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1194",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-efa895c98fb7617e71e0b3f116d10c6e257416e816cac3538dd5023b09f27ca4",
+              "from": "gh-70b31d57f5531058adb32208015e9885f8601a7c35b569bf2f3ed879295248e0",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaStats/PDMats.jl/issues/215",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-7ec577479f83f5cefe2fa77925ba67b7a7c7323ac91ff0cdddca2f13c88c1aa9",
+              "from": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "to": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1199#issuecomment-2649561378",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-3e0d63d2c6013473c89d80e3768ab973d944d0d53af310110041dc83c5c736f8",
+              "from": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1199#issuecomment-2650792905",
+                  "text": "Reference in comments."
+                },
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1199#issuecomment-2669590557",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-407b048d8b2a21b0eee82a39965d774da728579f02d613553903d172e2872396",
+              "from": "gh-a775e9a3634a9b21d576b97445689732601503aea10c85cb402833a6f3f8b267",
+              "to": "gh-8708a3b170e7b773a8501a86c9e36a577016f7ad586dcff7fc1a0f011f101e6c",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1199",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-5152e575de81122988d87c9b29f206751881a32adb8a5efb170557c50e6a3691",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-2bf0324256e66ff097d852f7c37750130e6e8f62a3ca40aff3dfa8e3fcdbea0b",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                },
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2672377520",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-22faea9cf0a347b30f2983c6f1348462f9af9a3648d604b794d8153f969d671a",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-a0e0cb6c71c898a070ae1c1148da77d2569c36581880af4a7a8ab642cf086ab3",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                },
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2672377520",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-ee5d9a0e2029caa2ca59b1e9f2f4ac1c38c9c4c583cd481cc9b9e05dc87a61e5",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-9ce475aadc05daca9ff2dc9c2486b1fc8d407079def5aae87885587fd8d069c5",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-4146b1781cd8529a94345ce8df6e31a30048f585b6a251f4e4d7a198442df981",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-5cc6e4af93d34801f511f5a221f00edadfae8fd0ba25bd9e8120465c9f5796c0",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-eea33666e7b1f427e903ee9352120f673e9210669088d9e76c7d417786b9e3e2",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-7a2c4be05526a3544921f5e79dc79d03925323ff55988983da67cd85d5ec4c0d",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-589c78dfe1b62d44352f5f016565c32aa7f9512232bb72681cd73bb5f89a4a3f",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-b37ab89c355371e6587ae8b8f35a8b907f62500e0fad264eb9ac16120ce72707",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-4ae8b16d729e816659b10f08de121e89715e6322dea80ce3d4e2f1ad0d921bd5",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-e6bd1ff979d5eee8e9e23c7f3a64cf8d0bdc822b719f95b58c90c16517a4fa22",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217",
+                  "text": "Reference in body."
+                },
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2777554003",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-a6cedf68205ad647a659f5786d30b2d09fcbb522657e12975e804427a8856a34",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2672291307",
+                  "text": "Reference in comments."
+                },
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2672403376",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-1e03b900b0b27975a04886e18d7152a88391ef81df37eabc6369e557831aba8b",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2672413450",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-afbd8ce265aeb428b39b9f89929958cb49ef0de3299a5824580e640dcacda8b5",
+              "from": "gh-2c376541ab74ab8f9164e6922c4e914169468b1cab7d5ce04f86fec95f8b65e6",
+              "to": "gh-16d361488bc9cea686164fe78a9a1e35826afe33ef84ea639c3421b1eec8906c",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/pull/1217#issuecomment-2777759479",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-25419fb97641d2224bf3ccf3677d2b99824c00d7b518662823bfbcfc01e21c45",
+              "from": "gh-33dacba1926e3573cb2f5aa6a3ef651aadeaed1bcd06302b744ce7ce16999417",
+              "to": "gh-7fc42c4be9dfda86cfd5cb4feda7657d5fce92f4a8751a82c8e198aaf3aaf263",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/LinearAlgebra.jl/issues/929#issuecomment-5855084160",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-45f30cb69e5c6a7dbc2c5750b03410e0a3d5746b884855308a07d6dc1bbbc0e9",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-2f47ffd3abdee072f8e3c4c2b6af73af3ed6c85a83ea5b67677a3030f4820e40",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-cece2cf1c49b562eff43b23377d60f9aedb420661ccd26f110c92805268fe593",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-7ad78946a3d56e3ae5731e8b900810f57cb36028b57b94caa2e8db482bf63ca3",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-beb601aa9318faa2afcbcca0fe777c126a3da9c6cce985a78539b7bf48dd7e94",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-1dd780474b4767b5309af04c876c5c9d1c8b8ca756ca362f3f0b45f11947c384",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-84af079a26f31850a95ef701f5582a098c51a91e492c67460f6a4974dcab3b02",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-50a7f92125dea55897646ee186bb3dd7eee0970b1b28cfd2668c697b27c99388",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-108b1ee1807fd329dac171179d104c24b987a23aae8284828d34bb8a1573c580",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-e937df212c2495580c7accedbc7ec928073cd6a69ca18e81158a938671b051fc",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-1a3420b462f56946cee29c642d10f3c32222ad2f6ba95ad20c76c4541ea28346",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-a8cd98ef741528c946454ebfdaaab93d77764fc6f275a30ff86b1fa001525719",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-9ab57d568bc7bd08efe6bc9412b9d1c7ff33cd5a1cca13914b52fbfcedcda7ea",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328#issuecomment-6714183429",
+                  "text": "Reference in comments."
+                }
+              ]
+            },
+            {
+              "id": "edge-9bb58942cce12f6edf24ed15e981464347f89f046d88b9e86774eae65be6f17b",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-2fe7e0f6afc8462955a5f5a0d78ccd7e0aec720a4eeea86d3dc9b61adccf4123",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-76db0ba71ba59656d2a71fa8b8ef913ac658d087646dee7d2dc818213df5e07f",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-762af787a1b2fd67e67a0982f4ca1cb457ba5c8117b233bafba857d28a40ad05",
+              "from": "gh-4d45c29d92c6c6ac66b444f79ce5d2bad1c49d96cac9200f1a9245bd80057a27",
+              "to": "gh-d5ac1d62d8d603de5fc6f7ac860b9e162bcd336bf290513b591879289d609af7",
+              "label": "referenced by",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaDiff/ReverseDiff.jl/pull/328",
+                  "text": "Timeline cross-reference."
+                }
+              ]
+            },
+            {
+              "id": "edge-2a67c2c9746db7abff2d53bf9cdf72a5695331276b91cca92200994746814386",
+              "from": "gh-9dad47bacdc7ea2e4c2a644a2cf1ad8f21475b9b00fa648b2e5b035477ceee2f",
+              "to": "gh-1ce2f7056f1704e3917a5546cfc8ba253d7be57b30e0c2f63fa8d4bfde2a7a83",
+              "label": "mentions",
+              "text": "Collected reference.",
+              "evidence": [
+                {
+                  "url": "https://github.com/shravangoswami-bot/pr-reviews/issues/1#issuecomment-6800547994",
+                  "text": "Reference in comments."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
