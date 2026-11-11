@@ -17,6 +17,10 @@ on:
         description: Check Claude subscription and model
         type: boolean
         default: false
+      check_cloud:
+        description: Check cloud access without starting a review
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -28,14 +32,15 @@ jobs:
        (!github.event.issue.pull_request &&
         github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
         contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
-    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@4eac54ec94f41c89fb187a9781a520dc2584620d
+    uses: shravanngoswamii/reviary/.github/workflows/review-bot.yml@d9b611ab32d22203897f165a5aef6087cd229337
     with:
       tool_repository: shravanngoswamii/reviary
-      tool_ref: 4eac54ec94f41c89fb187a9781a520dc2584620d
+      tool_ref: d9b611ab32d22203897f165a5aef6087cd229337
       config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
       check_subscription: ${{ inputs.check_subscription || false }}
+      check_cloud: ${{ inputs.check_cloud || false }}
     secrets:
       REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
