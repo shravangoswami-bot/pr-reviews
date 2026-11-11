@@ -5,7 +5,7 @@
   "summary": "upper_triangular and lower_triangular now use triu and tril, so Adjoint Cholesky factors on Julia 1.13 no longer raise a MethodError.",
   "conclusion": {
     "decision": "approve",
-    "summary": "No blocker found in the source-checked scope; runtime behavior was not run.",
+    "summary": "No blocking issue found in the reviewed source.",
     "reasons": []
   },
   "review": {
